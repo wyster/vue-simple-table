@@ -1,5 +1,30 @@
 <template>
-  <div class="container" ref="root">
+  <div class="container">
+    Devtools:
+    <button type="button" @click="generateProducts()">
+      Generate products
+    </button>
+    <button type="button" @click="generateProductsInWorker()">
+      Generate products in Web Worker
+    </button>
+    <label
+      >Use Web Worker:
+      <input
+        type="radio"
+        name="sortType"
+        value="0"
+        checked
+        @click="$event.target.checked ? (sortType = 0) : null"
+    /></label>
+    <label
+      >Use current thread:
+      <input
+        type="radio"
+        name="sortType"
+        value="1"
+        @click="$event.target.checked ? (sortType = 1) : null"
+    /></label>
+    <br />
     <template v-if="products.length > 0">
       Sorting by:
       <button
@@ -13,15 +38,15 @@
         {{ name }}
       </button>
       <button @click="deleteChecked">Delete {{ checked.length }}</button>
-      <select @change="filters.limit = parseInt($event.target.value)">
+      <select @change="tableParams.limit = parseInt($event.target.value)">
         <option value="10">10 Per Page</option>
         <option value="20">30 Per Page</option>
         <option value="50">50 Per Page</option>
         <option value="100">100 Per Page</option>
       </select>
       <button @click="prevPage">&lt;</button
-      >{{ filters.page * filters.limit - filters.limit }}-{{
-        products.length * filters.page
+      >{{ tableParams.page * tableParams.limit - tableParams.limit }}-{{
+        products.length * tableParams.page
       }}
       of {{ totalProductsCount }}<button @click="nextPage">&gt;</button>
       <button type="button" @click="selectAllColumns">Select all</button>
@@ -30,7 +55,7 @@
           v-for="{ name, field } in columns()"
           :key="field"
           :value="field"
-          :selected="filters.columns.includes(field)"
+          :selected="tableParams.columns.includes(field)"
         >
           {{ name }}
         </option>
@@ -43,14 +68,14 @@
     <button type="button" @click="getProductsFromServer(true)">
       Reload from server
     </button>
-    <button type="button" @click="generateProducts()">
-      Generate products
-    </button>
     <div v-if="fetchError">
       Error: {{ fetchError }}
       <button type="button" @click="getProductsFromServer(true)">Retry</button>
     </div>
-    <table v-if="!fetchError && products.length > 0">
+    <div v-if="loading">
+      Loading...
+    </div>
+    <table v-if="!fetchError && products.length > 0 && !loading">
       <tr>
         <th>
           <input
@@ -75,7 +100,9 @@
         </td>
         <td v-for="{ field } in filteredColumns">{{ product[field] }}</td>
         <td>
-          <a href="javascript:;" @click="deleteProduct(product.id)">Delete</a>
+          <a href="javascript:;" @click="deleteProduct(product.id)"
+            >Delete #{{ product.id }}</a
+          >
         </td>
       </tr>
     </table>
@@ -83,22 +110,24 @@
 </template>
 
 <script>
-import { ref, watch, computed, reactive } from "vue";
+import { ref, watch, computed, reactive, nextTick } from "vue";
 import { useStore } from "./store";
 
 export default {
   setup() {
+    const sortType = ref(0);
+    const loading = ref(false);
     const checkAllElement = ref(null);
     const fetchError = ref("");
     const store = useStore();
     const totalProducts = ref([]);
     const currentProducts = computed(() => {
       console.time("slice products profile");
-      const start = (filters.page - 1) * filters.limit;
-      const end = filters.limit + start;
-      totalProducts.value = store.getters.getProducts(filters);
+      const start = (tableParams.page - 1) * tableParams.limit;
+      const end = tableParams.limit + start;
       const data = totalProducts.value.slice(start, end);
       console.timeEnd("slice products profile");
+      loading.value = false;
       return data;
     });
     const totalProductsCount = computed(() => {
@@ -110,7 +139,7 @@ export default {
         name: columns[filters.sortBy],
         field: filters.sortBy,
       });
-      filters.columns.forEach((value) => {
+      tableParams.columns.forEach((value) => {
         if (value === filters.sortBy) {
           return;
         }
@@ -129,36 +158,58 @@ export default {
       iron: "Iron",
     };
     const filters = reactive({
-      limit: 10,
-      page: 1,
-      columns: Object.keys(columns),
       sortBy: Object.keys(columns)[0],
       sortType: "asc",
     });
-    const getProducts = (filters) => {};
+    const tableParams = reactive({
+      limit: 10,
+      page: 1,
+      columns: Object.keys(columns),
+    });
 
-    watch(filters, getProducts, { deep: true });
+    function waitRerender() {
+      return new Promise((resolve) => {
+        nextTick(() => {
+          window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(resolve);
+          });
+        });
+      });
+    }
+
+    async function getProducts() {
+      loading.value = true;
+      await waitRerender();
+      let promise;
+      if (sortType.value === 0) {
+        promise = store.getters.getSortedProductsFromWorker(filters);
+      }
+      if (sortType.value === 1) {
+        promise = store.getters.getSortedProducts(filters);
+      }
+      promise.then((data) => {
+        totalProducts.value = data;
+      });
+    }
+
+    watch(() => filters, getProducts, { deep: true });
     watch(
-      () => filters.page,
+      () => tableParams.page,
       () => {
         checkAllElement.value.checked = false;
       },
       { deep: true }
     );
+    watch(() => store.state.products, getProducts, { deep: true });
 
     getProductsFromServer();
 
     function getProductsFromServer(force = false) {
       fetchError.value = "";
-      store
-        .dispatch("getProducts", force)
-        .then(() => {
-          getProducts(filters);
-        })
-        .catch((e) => {
-          fetchError.value = e.error;
-          console.error(e);
-        });
+      store.dispatch("getProducts", force).catch((e) => {
+        fetchError.value = e.error;
+        console.error(e);
+      });
     }
 
     function deleteProducts(ids) {
@@ -175,6 +226,8 @@ export default {
     }
 
     return {
+      sortType,
+      tableParams,
       getProductsFromServer,
       fetchError,
       checkAllElement,
@@ -182,15 +235,16 @@ export default {
       products: currentProducts,
       filters,
       checked,
+      loading,
       selectColumn(e) {
         e.preventDefault();
         const results = Array.from(e.target.selectedOptions).map(
           (option) => option.value
         );
-        filters.columns = results;
+        tableParams.columns = results;
       },
       selectAllColumns() {
-        filters.columns = Object.keys(columns);
+        tableParams.columns = Object.keys(columns);
       },
       columns() {
         const results = [];
@@ -202,16 +256,16 @@ export default {
       },
       filteredColumns,
       prevPage() {
-        if (filters.page === 1) {
+        if (tableParams.page === 1) {
           return;
         }
-        filters.page--;
+        tableParams.page--;
       },
       nextPage() {
-        if (filters.limit * filters.page >= totalProducts) {
+        if (tableParams.limit * tableParams.page >= totalProducts) {
           return;
         }
-        filters.page++;
+        tableParams.page++;
       },
       checkProduct(e, id) {
         if (e.target.checked) {
@@ -261,6 +315,9 @@ export default {
       },
       generateProducts() {
         store.dispatch("generateProducts");
+      },
+      generateProductsInWorker() {
+        store.dispatch("generateProductsInWorker");
       },
     };
   },
