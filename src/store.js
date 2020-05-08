@@ -1,5 +1,5 @@
 import { createStore } from "vuex";
-import { getProducts, deleteProducts } from "./request";
+import { getProducts, deleteProducts, updateProduct } from "./request";
 import { sort } from "./sort";
 import sortWorker from "workerize-loader?inline!./sort";
 import { generateNewProducts } from "./generator";
@@ -23,14 +23,13 @@ const store = createStore({
 
       if (state.products.length === 0 || force) {
         commit("setProducts", []);
-        let products = await getProducts();
-        commit("setProducts", products);
+        commit("setProducts", await getProducts());
       }
 
       return Promise.resolve(state.products);
     },
     async deleteProducts({ state, commit }, ids) {
-      console.debug("deleteProducts action", ids);
+      console.debug("delete products action", ids);
       return deleteProducts(ids).then(() => {
         console.time("delete products profile");
         ids.forEach((id) => {
@@ -40,6 +39,17 @@ const store = createStore({
           state.products.splice(index, 1);
         });
         console.timeEnd("delete products profile");
+      });
+    },
+    async updateProduct({ state, commit }, data) {
+      console.debug("update product action", data);
+      return updateProduct(data).then(() => {
+        console.time("update product profile");
+        const index = state.products.findIndex((p) => {
+          return p.id === data.id;
+        });
+        state.products[index] = data;
+        console.timeEnd("update product profile");
       });
     },
     generateProducts({ state, commit }) {

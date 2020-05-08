@@ -32,3 +32,17 @@ export const deleteProducts = () =>
       resolve({ message: "deleted" });
     }, delay);
   });
+
+/** Emulate delete request */
+export const updateProduct = () =>
+    new Promise((resolve, reject) => {
+        if (rejectByChance()) {
+            return reject({
+                error: "Server error",
+            });
+        }
+        const delay = parseInt(Math.random() * 1000);
+        setTimeout(() => {
+            resolve({ message: "updated" });
+        }, delay);
+    });

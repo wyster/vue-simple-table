@@ -90,7 +90,7 @@
         </th>
         <th></th>
       </tr>
-      <tr v-for="product in products" :key="product.id">
+      <tr v-for="product in products" :key="product.id" class="product">
         <td>
           <input
             type="checkbox"
@@ -98,7 +98,7 @@
             :checked="checked.includes(product.id)"
           />
         </td>
-        <td v-for="{ field } in filteredColumns">{{ product[field] }}</td>
+        <td v-for="{ field } in filteredColumns" @click="edit(product, field)">{{ product[field] }}</td>
         <td>
           <a href="javascript:;" @click="deleteProduct(product.id)"
             >Delete #{{ product.id }}</a
@@ -112,6 +112,7 @@
 <script>
 import { ref, watch, computed, reactive, nextTick } from "vue";
 import { useStore } from "./store";
+import clone from 'clone';
 
 export default {
   setup() {
@@ -320,6 +321,28 @@ export default {
       generateProductsInWorker() {
         store.dispatch("generateProductsInWorker");
       },
+      edit(product, field) {
+        product = clone(product);
+        let isNumber = false;
+        if (typeof product[field] === 'number') {
+          isNumber = true;
+          product[field] = product[field].toString();
+        }
+        product[field] = product[field].split("").reverse().join("");
+        if (isNumber) {
+          product[field] = parseInt(product[field]);
+        }
+        store
+          .dispatch("updateProduct", product)
+          .then(() => {
+            checked.value.length = 0;
+          })
+          .catch((e) => {
+            alert(e.error);
+            console.error(e);
+            throw e;
+          });
+      }
     };
   },
 };
@@ -334,5 +357,9 @@ export default {
 
 .btn-active {
   font-weight: bold;
+}
+
+.product {
+  cursor: pointer;
 }
 </style>
