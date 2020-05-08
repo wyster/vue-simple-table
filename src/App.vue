@@ -208,6 +208,7 @@ export default {
       fetchError.value = "";
       store.dispatch("getProducts", force).catch((e) => {
         fetchError.value = e.error;
+        getProducts();
         console.error(e);
       });
     }
@@ -332,6 +333,6 @@ export default {
 }
 
 .btn-active {
-  background: red;
+  font-weight: bold;
 }
 </style>

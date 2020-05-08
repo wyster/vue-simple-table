@@ -22,9 +22,9 @@ const store = createStore({
       console.debug("getProducts action, force:", force ? 1 : 0);
 
       if (state.products.length === 0 || force) {
+        commit("setProducts", []);
         let products = await getProducts();
         commit("setProducts", products);
-        return Promise.resolve(products);
       }
 
       return Promise.resolve(state.products);
