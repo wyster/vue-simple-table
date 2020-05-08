@@ -1,31 +1,34 @@
 <template>
   <div class="container">
     Devtools:
-    <button type="button" @click="generateProducts()">
-      Generate products
+    <button type="button" @click="getProductsFromServer(true)">
+      Reload from server
     </button>
-    <button type="button" @click="generateProductsInWorker()">
-      Generate products in Web Worker
-    </button>
-    <label
-      >Use Web Worker:
-      <input
-        type="radio"
-        name="sortType"
-        value="0"
-        checked
-        @click="$event.target.checked ? (sortType = 0) : null"
-    /></label>
-    <label
-      >Use current thread:
-      <input
-        type="radio"
-        name="sortType"
-        value="1"
-        @click="$event.target.checked ? (sortType = 1) : null"
-    /></label>
-    <br />
     <template v-if="products.length > 0">
+      <button type="button" @click="generateProducts()">
+        Generate products
+      </button>
+      <button type="button" @click="generateProductsInWorker()">
+        Generate products in Web Worker
+      </button>
+      <label
+        >Use Web Worker:
+        <input
+          type="radio"
+          name="sortType"
+          value="0"
+          checked
+          @click="$event.target.checked ? (sortType = 0) : null"
+      /></label>
+      <label
+        >Use current thread:
+        <input
+          type="radio"
+          name="sortType"
+          value="1"
+          @click="$event.target.checked ? (sortType = 1) : null"
+      /></label>
+      <br />
       Sorting by:
       <button
         v-for="{ field, name } in columns()"
@@ -65,9 +68,6 @@
         <option value="desc">desc</option>
       </select>
     </template>
-    <button type="button" @click="getProductsFromServer(true)">
-      Reload from server
-    </button>
     <div v-if="fetchError">
       Error: {{ fetchError }}
       <button type="button" @click="getProductsFromServer(true)">Retry</button>
