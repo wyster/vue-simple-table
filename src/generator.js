@@ -1,3 +1,5 @@
+import clone from "clone";
+
 export function generateNewProducts(products) {
   let i = 0;
   let newProducts = products;
@@ -5,15 +7,11 @@ export function generateNewProducts(products) {
     i++;
     newProducts = newProducts.concat(
       newProducts.slice(0, 1000).map((item) => {
-        item = copy(item);
+        item = clone(item);
         item.id = item.id + newProducts.length;
         return item;
       })
     );
   }
-  return products.concat(newProducts);
-}
-
-function copy(o) {
-  return JSON.parse(JSON.stringify(o));
+  return newProducts;
 }

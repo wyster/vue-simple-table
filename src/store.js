@@ -4,6 +4,7 @@ import { sort } from "./sort";
 import sortWorker from "workerize-loader?inline!./sort";
 import { generateNewProducts } from "./generator";
 import generatorWorker from "workerize-loader?inline!./generator";
+import clone from "clone";
 
 const store = createStore({
   state() {
@@ -72,7 +73,7 @@ const store = createStore({
         });
         console.time("filter products profile from worker");
         sortWorker()
-          .sort(JSON.stringify(state.products), {
+          .sort(copy(state.products), {
             sortBy,
             sortType,
           })
@@ -90,5 +91,8 @@ export function useStore() {
 }
 
 function copy(o) {
-  return JSON.parse(JSON.stringify(o));
+  console.time("clone");
+  const cloned = clone(o);
+  console.timeEnd("clone");
+  return cloned;
 }
