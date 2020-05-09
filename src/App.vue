@@ -1,18 +1,30 @@
 <template>
   <div class="container">
     Devtools:
-    <button type="button" @click="getProductsFromServer(true)">
+    <button
+      class="btn btn_bordered"
+      type="button"
+      @click="getProductsFromServer(true)"
+    >
       Reload from server
     </button>
     <template v-if="products.length > 0">
-      <button type="button" @click="generateProducts()">
+      <button
+        class="btn btn_bordered"
+        type="button"
+        @click="generateProducts()"
+      >
         Generate products
       </button>
-      <button type="button" @click="generateProductsInWorker()">
+      <button
+        class="btn btn_bordered"
+        type="button"
+        @click="generateProductsInWorker()"
+      >
         Generate products in Web Worker
       </button>
-      <label
-        >Use Web Worker:
+      <label>
+        Use Web Worker:
         <input
           type="radio"
           name="sortType"
@@ -20,57 +32,68 @@
           checked
           @click="$event.target.checked ? (sortType = 0) : null"
       /></label>
-      <label
-        >Use current thread:
+      <label>
+        Use current thread:
         <input
           type="radio"
           name="sortType"
           value="1"
           @click="$event.target.checked ? (sortType = 1) : null"
-      /></label>
+        />
+      </label>
       <br />
       Sorting by:
       <button
         v-for="{ field, name } in columns()"
         :key="field"
         @click="filters.sortBy = field"
-        :class="{ 'btn-active': filters.sortBy === field }"
+        :class="['btn', { btn_active: filters.sortBy === field }]"
         type="button"
         :value="field"
       >
         {{ name }}
       </button>
-      <button @click="deleteChecked">Delete {{ checked.length }}</button>
-      <select @change="tableParams.limit = parseInt($event.target.value)">
+      <button
+        v-if="checked.length > 0"
+        class="btn btn_green"
+        @click="deleteChecked"
+      >
+        Delete {{ checked.length }}
+      </button>
+      <select
+        class="select"
+        @change="tableParams.limit = parseInt($event.target.value)"
+      >
         <option value="10">10 Per Page</option>
         <option value="20">30 Per Page</option>
         <option value="50">50 Per Page</option>
         <option value="100">100 Per Page</option>
       </select>
-      <button @click="prevPage">&lt;</button
-      >{{ tableParams.page * tableParams.limit - tableParams.limit }}-{{
-        products.length * tableParams.page
-      }}
-      of {{ totalProductsCount }}<button @click="nextPage">&gt;</button>
-      <button type="button" @click="selectAllColumns">Select all</button>
-      <select multiple @change="selectColumn">
-        <option
-          v-for="{ name, field } in columns()"
-          :key="field"
-          :value="field"
-          :selected="tableParams.columns.includes(field)"
-        >
-          {{ name }}
-        </option>
-      </select>
-      <select @change="filters.sortType = $event.target.value">
+      <button class="btn btn_bordered" @click="prevPage">&lt;</button>
+      {{ tableParams.page * tableParams.limit - tableParams.limit }}-
+      {{ products.length * tableParams.page }}
+      of {{ totalProductsCount }}
+      <button class="btn btn_bordered" @click="nextPage">&gt;</button>
+      <Select
+        :values="columns()"
+        :selected="tableParams.columns"
+        :disabled="[filters.sortBy]"
+        @selected="tableParams.columns = $event"
+      />
+      <select class="select" @change="filters.sortType = $event.target.value">
         <option value="asc">asc</option>
         <option value="desc">desc</option>
       </select>
     </template>
     <div v-if="fetchError">
       Error: {{ fetchError }}
-      <button type="button" @click="getProductsFromServer(true)">Retry</button>
+      <button
+        type="button"
+        @click="getProductsFromServer(true)"
+        class="btn btn_bordered"
+      >
+        Retry
+      </button>
     </div>
     <div v-if="loading">
       Loading...
@@ -98,11 +121,13 @@
             :checked="checked.includes(product.id)"
           />
         </td>
-        <td v-for="{ field } in filteredColumns" @click="edit(product, field)">{{ product[field] }}</td>
+        <td v-for="{ field } in filteredColumns" @click="edit(product, field)">
+          {{ product[field] }}
+        </td>
         <td>
-          <a href="javascript:;" @click="deleteProduct(product.id)"
-            >Delete #{{ product.id }}</a
-          >
+          <a href="javascript:;" @click="deleteProduct(product.id)">
+            Delete #{{ product.id }}
+          </a>
         </td>
       </tr>
     </table>
@@ -112,9 +137,13 @@
 <script>
 import { ref, watch, computed, reactive, nextTick } from "vue";
 import { useStore } from "./store";
-import clone from 'clone';
+import clone from "clone";
+import Select from "./Select.vue";
 
 export default {
+  components: {
+    Select,
+  },
   setup() {
     const sortType = ref(0);
     const loading = ref(false);
@@ -238,16 +267,6 @@ export default {
       filters,
       checked,
       loading,
-      selectColumn(e) {
-        e.preventDefault();
-        const results = Array.from(e.target.selectedOptions).map(
-          (option) => option.value
-        );
-        tableParams.columns = results;
-      },
-      selectAllColumns() {
-        tableParams.columns = Object.keys(columns);
-      },
       columns() {
         const results = [];
         Object.entries(columns).forEach((values) => {
@@ -324,7 +343,7 @@ export default {
       edit(product, field) {
         product = clone(product);
         let isNumber = false;
-        if (typeof product[field] === 'number') {
+        if (typeof product[field] === "number") {
           isNumber = true;
           product[field] = product[field].toString();
         }
@@ -342,17 +361,19 @@ export default {
             console.error(e);
             throw e;
           });
-      }
+      },
     };
   },
 };
 </script>
 
 <style scoped>
+@import "./style.css";
 .container {
   width: 80%;
   margin: 0 auto;
   display: block;
+  user-select: none;
 }
 
 .btn-active {
@@ -361,5 +382,25 @@ export default {
 
 .product {
   cursor: pointer;
+}
+
+body {
+  font-family: Source Sans Pro;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+table {
+  width: 100%;
+}
+
+table td {
+  line-height: 24px;
+}
+table th {
+  line-height: 24px;
+  text-align: left;
+  color: #282136;
 }
 </style>
