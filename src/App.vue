@@ -213,13 +213,6 @@ export default {
 
     async function getProducts() {
       loading.value = '.';
-      loadingInterval = setInterval(() => {
-        console.debug('called interval');
-        if (loading.value === '') {
-          return;
-        }
-        loading.value += '.';
-      }, 500);
       await waitRerender();
       let promise;
       if (sortType.value === 0) {
@@ -242,10 +235,17 @@ export default {
       { deep: true }
     );
     watch(() => store.state.products, getProducts, { deep: true });
-    watch(loading, value => {
+    watch(() => loading.value, value => {
       if (value === '') {
-        clearInterval(loadingInterval);
+        return;
       }
+
+      setTimeout(() => {
+        if (loading.value === '') {
+          return;
+        }
+        loading.value += '.';
+      }, 100);
     });
 
     getProductsFromServer();
