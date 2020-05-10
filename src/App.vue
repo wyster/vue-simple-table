@@ -8,7 +8,6 @@
     >
       Reload from server
     </button>
-    <template v-if="products.length > 0">
       <button
         class="btn btn_bordered"
         type="button"
@@ -53,6 +52,11 @@
       >
         {{ name }}
       </button>
+      <select class="select" @change="filters.sortType = $event.target.value">
+        <option value="asc">asc</option>
+        <option value="desc">desc</option>
+      </select>
+      <input class="field" placeholder="Search" @input="filters.search = $event.target.value">
       <button
         v-if="checked.length > 0"
         class="btn btn_green"
@@ -80,11 +84,6 @@
         :disabled="[filters.sortBy]"
         @selected="tableParams.columns = $event"
       />
-      <select class="select" @change="filters.sortType = $event.target.value">
-        <option value="asc">asc</option>
-        <option value="desc">desc</option>
-      </select>
-    </template>
     <div v-if="fetchError">
       Error: {{ fetchError }}
       <button
@@ -95,10 +94,13 @@
         Retry
       </button>
     </div>
-    <div v-if="loading">
-      Loading...
+    <div v-if="!fetchError && products.length === 0 && loading === ''">
+      Products not found
     </div>
-    <table v-if="!fetchError && products.length > 0 && !loading">
+    <div v-if="loading !== ''">
+      Loading{{loading}}
+    </div>
+    <table v-if="!fetchError && products.length > 0 && loading === ''">
       <tr>
         <th>
           <input
@@ -146,18 +148,19 @@ export default {
   },
   setup() {
     const sortType = ref(0);
-    const loading = ref(false);
+    const loading = ref('');
     const checkAllElement = ref(null);
     const fetchError = ref("");
     const store = useStore();
     const totalProducts = ref([]);
+    let loadingInterval;
     const currentProducts = computed(() => {
       console.time("slice products profile");
       const start = (tableParams.page - 1) * tableParams.limit;
       const end = tableParams.limit + start;
       const data = totalProducts.value.slice(start, end);
       console.timeEnd("slice products profile");
-      loading.value = false;
+      loading.value = '';
       return data;
     });
     const totalProductsCount = computed(() => {
@@ -190,6 +193,7 @@ export default {
     const filters = reactive({
       sortBy: Object.keys(columns)[0],
       sortType: "asc",
+      search: ""
     });
     const tableParams = reactive({
       limit: 10,
@@ -208,7 +212,14 @@ export default {
     }
 
     async function getProducts() {
-      loading.value = true;
+      loading.value = '.';
+      loadingInterval = setInterval(() => {
+        console.debug('called interval');
+        if (loading.value === '') {
+          return;
+        }
+        loading.value += '.';
+      }, 500);
       await waitRerender();
       let promise;
       if (sortType.value === 0) {
@@ -231,6 +242,11 @@ export default {
       { deep: true }
     );
     watch(() => store.state.products, getProducts, { deep: true });
+    watch(loading, value => {
+      if (value === '') {
+        clearInterval(loadingInterval);
+      }
+    });
 
     getProductsFromServer();
 

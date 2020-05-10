@@ -1,4 +1,4 @@
-export function sort(data, { sortBy, sortType }) {
+export function sort(data, { sortBy, sortType, search }) {
   if (typeof data === "string") {
     data = JSON.parse(data);
   }
@@ -6,6 +6,21 @@ export function sort(data, { sortBy, sortType }) {
     return data;
   }
   const fieldType = typeof data[0][sortBy];
+
+  if (search) {
+    data = data.filter(item => {
+      if (fieldType === "string") {
+        return item[sortBy].toLowerCase().includes(search.toLowerCase());
+      }
+
+      if (fieldType === "number") {
+        return item[sortBy] === parseInt(search);
+      }
+
+      return item[sortBy] === search;
+    });
+  }
+
   if (fieldType === "string") {
     data.sort((a, b) => {
       return a[sortBy].localeCompare(b[sortBy]);

@@ -68,24 +68,26 @@ const store = createStore({
     },
   },
   getters: {
-    getSortedProducts: (state) => ({ sortBy, sortType }) => {
-      console.debug("getSortedProducts getter", { sortBy, sortType });
+    getSortedProducts: (state) => ({ sortBy, sortType, search }) => {
+      console.debug("getSortedProducts getter", { sortBy, sortType, search });
       console.time("filter products profile");
-      const results = sort(copy(state.products), { sortBy, sortType });
+      const results = sort(copy(state.products), { sortBy, sortType, search });
       console.timeEnd("filter products profile");
       return Promise.resolve(results);
     },
-    getSortedProductsFromWorker: (state) => ({ sortBy, sortType }) => {
+    getSortedProductsFromWorker: (state) => ({ sortBy, sortType, search }) => {
       return new Promise((resolve) => {
         console.debug("getSortedProductsFromWorker getter", {
           sortBy,
           sortType,
+          search
         });
         console.time("filter products profile from worker");
         sortWorker()
           .sort(copy(state.products), {
             sortBy,
             sortType,
+            search
           })
           .then((data) => {
             console.timeEnd("filter products profile from worker");
